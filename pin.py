@@ -25,7 +25,7 @@ If you need this to be something other than GPL, send me an email.
 """
 
 from M2Crypto import X509
-import sys, binascii, hashlib
+import sys, binascii, hashlib, base64
 
 def main(argv):
     if len(argv) < 1:
@@ -41,6 +41,7 @@ def main(argv):
 
     print "Calculating PIN for certificate: " + x509.get_subject().as_text()
     print "Pin Value: " + binascii.hexlify(digest.digest())
+    print "base64: sha1/" + base64.encodestring(digest.digest())
 
 if __name__ == '__main__':
     main(sys.argv[1:])
