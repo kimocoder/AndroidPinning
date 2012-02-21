@@ -45,9 +45,12 @@ import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
+
+import android.os.Build;
 
 /**
  * A TrustManager implementation that enforces Certificate "pins."
@@ -229,24 +232,31 @@ public class PinningTrustManager implements X509TrustManager {
     }
 
     private KeyStore getTrustStore() {
-      try {
-	KeyStore trustStore = KeyStore.getInstance("BKS");
-	    			    		
-	trustStore.load(new BufferedInputStream(new FileInputStream(getTrustStorePath())),
-			getTrustStorePassword().toCharArray());
-	    		
-	return trustStore;
-      } catch (NoSuchAlgorithmException nsae) {
-	throw new AssertionError(nsae);
-      } catch (KeyStoreException e) {
-	throw new AssertionError(e);
-      } catch (CertificateException e) {
-	throw new AssertionError(e);
-      } catch (FileNotFoundException e) {
-	throw new AssertionError(e);
-      } catch (IOException e) {
-	throw new AssertionError(e);
-      }
+    	try {
+    		KeyStore trustStore; 
+    		
+    		if ( Build.VERSION.SDK_INT >= 14 ) {
+    			trustStore = KeyStore.getInstance("AndroidCAStore");
+    			trustStore.load(null,null);
+    		} 
+    		else {
+    			trustStore = KeyStore.getInstance("BKS");
+    			trustStore.load(new BufferedInputStream(new FileInputStream(getTrustStorePath())),
+    					getTrustStorePassword().toCharArray());
+    		}
+
+    		return trustStore;
+    	} catch (NoSuchAlgorithmException nsae) {
+    		throw new AssertionError(nsae);
+    	} catch (KeyStoreException e) {
+    		throw new AssertionError(e);
+    	} catch (CertificateException e) {
+    		throw new AssertionError(e);
+    	} catch (FileNotFoundException e) {
+    		throw new AssertionError(e);
+    	} catch (IOException e) {
+    		throw new AssertionError(e);
+    	}
     }
     	
     private String getTrustStorePath() {
