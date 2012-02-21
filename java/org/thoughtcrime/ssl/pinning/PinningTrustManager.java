@@ -51,6 +51,7 @@ import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 
 import android.os.Build;
+import android.util.Log;
 
 /**
  * A TrustManager implementation that enforces Certificate "pins."
@@ -83,6 +84,7 @@ import android.os.Build;
  */
 
 public class PinningTrustManager implements X509TrustManager {
+	private static final String TAG = "PinningTrustManager";
 
 	private final TrustManager[] systemTrustManagers;
 	private final SystemKeyStore systemKeyStore;
@@ -147,19 +149,27 @@ public class PinningTrustManager implements X509TrustManager {
 	public void checkServerTrusted(X509Certificate[] chain, String authType)
 			throws CertificateException 
 			{
+
+		Log.d(TAG, "Checking if server is trusted");
 		for (TrustManager systemTrustManager : systemTrustManagers) {
 			((X509TrustManager)systemTrustManager).checkServerTrusted(chain, authType);				
 		}
-
+		Log.d(TAG, "Getting trust root");
 		X509Certificate anchor = this.systemKeyStore.getTrustRoot(chain);
 
+		Log.d(TAG, "checking certs for valid pin");
 		for (X509Certificate certificate : chain) {
-			if (isValidPin(certificate))
+			if (isValidPin(certificate)) {
+				Log.d(TAG, "Success!");
 				return;
+			}
 		}
 
-		if (anchor != null && isValidPin(anchor))
+		Log.d(TAG, "checking anchor for valid pin");
+		if (anchor != null && isValidPin(anchor)) {
+			Log.d(TAG, "Success!");
 			return;
+		}
 
 		throw new CertificateException("No valid Pins found in Certificate Chain!");
 			}
@@ -235,6 +245,7 @@ public class PinningTrustManager implements X509TrustManager {
 			try {
 				KeyStore trustStore; 
 
+				Log.d(TAG,"Beginning keystore load");
 				if ( Build.VERSION.SDK_INT >= 14 ) {
 					trustStore = KeyStore.getInstance("AndroidCAStore");
 					trustStore.load(null,null);
@@ -244,6 +255,7 @@ public class PinningTrustManager implements X509TrustManager {
 					trustStore.load(new BufferedInputStream(new FileInputStream(getTrustStorePath())),
 							getTrustStorePassword().toCharArray());
 				}
+				Log.d(TAG,"Loaded keystore");
 
 				return trustStore;
 			} catch (NoSuchAlgorithmException nsae) {
