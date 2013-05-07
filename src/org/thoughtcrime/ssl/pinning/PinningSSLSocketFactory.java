@@ -17,16 +17,6 @@
 
 package org.thoughtcrime.ssl.pinning;
 
-import android.content.Context;
-
-import org.apache.http.conn.ssl.SSLSocketFactory;
-import org.apache.http.conn.ssl.X509HostnameVerifier;
-import org.apache.http.params.HttpConnectionParams;
-import org.apache.http.params.HttpParams;
-
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.TrustManager;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -35,6 +25,15 @@ import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.TrustManager;
+
+import org.apache.http.conn.ssl.SSLSocketFactory;
+import org.apache.http.conn.ssl.X509HostnameVerifier;
+import org.apache.http.params.HttpConnectionParams;
+import org.apache.http.params.HttpParams;
 
 /**
  * A standard Apache SSL Socket Factory that uses an pinning trust manager.
@@ -60,107 +59,110 @@ import java.security.UnrecoverableKeyException;
  */
 public class PinningSSLSocketFactory extends SSLSocketFactory {
 
-  private final javax.net.ssl.SSLSocketFactory pinningSocketFactory;
+    private final javax.net.ssl.SSLSocketFactory pinningSocketFactory;
 
-  /**
-   * Constructs a PinningSSLSocketFactory with a set of valid pins.
-   *
-   * @param pins An array of encoded pins to match a seen certificate
-   *             chain against. A pin is a hex-encoded hash of a X.509 certificate's
-   *             SubjectPublicKeyInfo. A pin can be generated using the provided pin.py
-   *             script: python ./tools/pin.py certificate_file.pem
-   *
-   * @param enforceUntilTimestampMillis A timestamp (in milliseconds) when pins will stop being
-   *                                    enforced.  Normal non-pinned certificate validation
-   *                                    will continue.  Set this to some period after your build
-   *                                    date, or to 0 to enforce pins forever.
-   */
+    /**
+     * Constructs a PinningSSLSocketFactory with a set of valid pins.
+     *
+     * @param pins An array of encoded pins to match a seen certificate
+     *             chain against. A pin is a hex-encoded hash of a X.509 certificate's
+     *             SubjectPublicKeyInfo. A pin can be generated using the provided pin.py
+     *             script: python ./tools/pin.py certificate_file.pem
+     *
+     * @param enforceUntilTimestampMillis A timestamp (in milliseconds) when pins will stop being
+     *                                    enforced.  Normal non-pinned certificate validation
+     *                                    will continue.  Set this to some period after your build
+     *                                    date, or to 0 to enforce pins forever.
+     */
 
-  public PinningSSLSocketFactory(Context context, String[] pins, long enforceUntilTimestampMillis)
-      throws UnrecoverableKeyException, KeyManagementException,
-             NoSuchAlgorithmException, KeyStoreException
-  {
-    super(null);
+    public PinningSSLSocketFactory(String[] pins,
+            long enforceUntilTimestampMillis) throws UnrecoverableKeyException,
+            KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
+        super(null);
 
-    final SystemKeyStore keyStore             = SystemKeyStore.getInstance(context);
-    final SSLContext pinningSslContext        = SSLContext.getInstance(TLS);
-    final TrustManager[] pinningTrustManagers = initializePinningTrustManagers(keyStore, pins, enforceUntilTimestampMillis);
+        final SystemKeyStore keyStore = SystemKeyStore.getInstance();
+        final SSLContext pinningSslContext = SSLContext.getInstance(TLS);
+        final TrustManager[] pinningTrustManagers = initializePinningTrustManagers(
+                keyStore, pins, enforceUntilTimestampMillis);
 
-    pinningSslContext.init(null, pinningTrustManagers, null);
-    this.pinningSocketFactory = pinningSslContext.getSocketFactory();
-  }
-
-  @Override
-  public Socket createSocket() throws IOException {
-    return pinningSocketFactory.createSocket();
-  }
-
-  @Override
-  public Socket connectSocket(final Socket sock, final String host, final int port,
-                              final InetAddress localAddress, int localPort,
-                              final HttpParams params) throws IOException {
-    final SSLSocket sslSock = (SSLSocket) ((sock != null) ? sock : createSocket());
-
-    if ((localAddress != null) || (localPort > 0)) {
-      if (localPort < 0) {
-        localPort = 0;
-      }
-
-      sslSock.bind(new InetSocketAddress(localAddress, localPort));
+        pinningSslContext.init(null, pinningTrustManagers, null);
+        this.pinningSocketFactory = pinningSslContext.getSocketFactory();
     }
 
-    final int connTimeout = HttpConnectionParams.getConnectionTimeout(params);
-    final int soTimeout = HttpConnectionParams.getSoTimeout(params);
-
-    final InetSocketAddress remoteAddress = new InetSocketAddress(host, port);
-    sslSock.connect(remoteAddress, connTimeout);
-    sslSock.setSoTimeout(soTimeout);
-
-    try {
-      SSLSocketFactory.STRICT_HOSTNAME_VERIFIER.verify(host, sslSock);
-    } catch (IOException iox) {
-      try {
-        sslSock.close();
-      } catch (Exception ignored) {
-      }
-      throw iox;
+    @Override
+    public Socket createSocket() throws IOException {
+        return pinningSocketFactory.createSocket();
     }
 
-    return sslSock;
-  }
+    @Override
+    public Socket connectSocket(final Socket sock, final String host,
+            final int port, final InetAddress localAddress, int localPort,
+            final HttpParams params) throws IOException {
+        final SSLSocket sslSock = (SSLSocket) ((sock != null) ? sock
+                : createSocket());
 
-  @Override
-  public Socket createSocket(final Socket socket, final String host,
-                             int port, final boolean autoClose)
-      throws IOException
-  {
-    if (port == -1) {
-      port = 443;
+        if ((localAddress != null) || (localPort > 0)) {
+            if (localPort < 0) {
+                localPort = 0;
+            }
+
+            sslSock.bind(new InetSocketAddress(localAddress, localPort));
+        }
+
+        final int connTimeout = HttpConnectionParams
+                .getConnectionTimeout(params);
+        final int soTimeout = HttpConnectionParams.getSoTimeout(params);
+
+        final InetSocketAddress remoteAddress = new InetSocketAddress(host,
+                port);
+        sslSock.connect(remoteAddress, connTimeout);
+        sslSock.setSoTimeout(soTimeout);
+
+        try {
+            SSLSocketFactory.STRICT_HOSTNAME_VERIFIER.verify(host, sslSock);
+        } catch (IOException iox) {
+            try {
+                sslSock.close();
+            } catch (Exception ignored) {
+            }
+            throw iox;
+        }
+
+        return sslSock;
     }
 
-    final SSLSocket sslSocket = (SSLSocket) pinningSocketFactory.createSocket(socket, host, port, autoClose);
-    SSLSocketFactory.STRICT_HOSTNAME_VERIFIER.verify(host, sslSocket);
-    return sslSocket;
-  }
+    @Override
+    public Socket createSocket(final Socket socket, final String host,
+            int port, final boolean autoClose) throws IOException {
+        if (port == -1) {
+            port = 443;
+        }
 
-  @Override
-  public void setHostnameVerifier(X509HostnameVerifier hostnameVerifier) {
-    throw new IllegalArgumentException("Only strict hostname verification (default)  " +
-                                       "is supported!");
-  }
+        final SSLSocket sslSocket = (SSLSocket) pinningSocketFactory
+                .createSocket(socket, host, port, autoClose);
+        SSLSocketFactory.STRICT_HOSTNAME_VERIFIER.verify(host, sslSocket);
+        return sslSocket;
+    }
 
-  @Override
-  public X509HostnameVerifier getHostnameVerifier() {
-    return SSLSocketFactory.STRICT_HOSTNAME_VERIFIER;
-  }
+    @Override
+    public void setHostnameVerifier(X509HostnameVerifier hostnameVerifier) {
+        throw new IllegalArgumentException(
+                "Only strict hostname verification (default)  "
+                        + "is supported!");
+    }
 
-  private TrustManager[] initializePinningTrustManagers(SystemKeyStore keyStore,
-                                                        String[] pins,
-                                                        long enforceUntilTimestampMillis)
-  {
-    final TrustManager[] trustManagers = new TrustManager[1];
-    trustManagers[0] = new PinningTrustManager(keyStore, pins, enforceUntilTimestampMillis);
+    @Override
+    public X509HostnameVerifier getHostnameVerifier() {
+        return SSLSocketFactory.STRICT_HOSTNAME_VERIFIER;
+    }
 
-    return trustManagers;
-  }
+    private TrustManager[] initializePinningTrustManagers(
+            SystemKeyStore keyStore, String[] pins,
+            long enforceUntilTimestampMillis) {
+        final TrustManager[] trustManagers = new TrustManager[1];
+        trustManagers[0] = new PinningTrustManager(keyStore, pins,
+                enforceUntilTimestampMillis);
+
+        return trustManagers;
+    }
 }

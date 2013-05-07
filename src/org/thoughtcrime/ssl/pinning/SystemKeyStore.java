@@ -16,11 +16,10 @@
  */
 package org.thoughtcrime.ssl.pinning;
 
-import android.content.Context;
-import android.content.res.Resources.NotFoundException;
-import android.util.Log;
-
 import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
@@ -32,107 +31,136 @@ import java.security.cert.X509Certificate;
 import java.util.Enumeration;
 import java.util.HashMap;
 
+import android.os.Build;
+
 /**
- * An interface to the system's trust anchors.  We're using our
- * own truststore, which is just the AOSP default, but in a place
- * we know to find it for sure.
+ * An interface to the system's trust anchors. 
+ * 
+ * Modified to use system trust store file on pre-ICS and 
+ * "AndroidCAStore" <code>KeyStore</code> on ICS+.
  *
  * @author Moxie Marlinspike
  */
 public class SystemKeyStore {
-  private static final int CACERTS_FILE_SIZE = 1024 * 140;
 
-  private static SystemKeyStore instance;
+    private static SystemKeyStore instance;
 
-  public static synchronized SystemKeyStore getInstance(Context context) {
-    if (instance == null) {
-      instance = new SystemKeyStore(context);
-    }
-    return instance;
-  }
-
-  private final HashMap<Principal, X509Certificate> trustRoots;
-  final KeyStore trustStore;
-
-  private SystemKeyStore(Context context) {
-    final KeyStore trustStore = getTrustStore(context);
-    this.trustRoots           = initializeTrustedRoots(trustStore);
-    this.trustStore           = trustStore;
-  }
-
-  public boolean isTrustRoot(X509Certificate certificate) {
-    final X509Certificate trustRoot = trustRoots.get(certificate.getSubjectX500Principal());
-    return trustRoot != null && trustRoot.getPublicKey().equals(certificate.getPublicKey());
-  }
-
-  public X509Certificate getTrustRootFor(X509Certificate certificate) {
-    final X509Certificate trustRoot = trustRoots.get(certificate.getIssuerX500Principal());
-
-    if (trustRoot == null) {
-      return null;
-    }
-
-    if (trustRoot.getSubjectX500Principal().equals(certificate.getSubjectX500Principal())) {
-      return null;
-    }
-
-    try {
-      certificate.verify(trustRoot.getPublicKey());
-    } catch (GeneralSecurityException e) {
-      return null;
-    }
-
-    return trustRoot;
-  }
-
-  private HashMap<Principal, X509Certificate> initializeTrustedRoots(KeyStore trustStore) {
-    try {
-      final HashMap<Principal, X509Certificate> trusted =
-          new HashMap<Principal, X509Certificate>();
-
-      for (Enumeration<String> aliases = trustStore.aliases(); aliases.hasMoreElements(); ) {
-        final String alias = aliases.nextElement();
-        final X509Certificate cert = (X509Certificate) trustStore.getCertificate(alias);
-
-        if (cert != null) {
-          trusted.put(cert.getSubjectX500Principal(), cert);
+    public static synchronized SystemKeyStore getInstance() {
+        if (instance == null) {
+            instance = new SystemKeyStore();
         }
-      }
-
-      return trusted;
-    } catch (KeyStoreException e) {
-      throw new AssertionError(e);
+        return instance;
     }
-  }
 
-  private KeyStore getTrustStore(Context context) {
-    try {
-      final KeyStore trustStore = KeyStore.getInstance("BKS");
-      final BufferedInputStream bin =
-          new BufferedInputStream(context.getResources().openRawResource(R.raw.cacerts),
-                                  CACERTS_FILE_SIZE);
+    private final HashMap<Principal, X509Certificate> trustRoots;
+    final KeyStore trustStore;
 
-      try {
-        trustStore.load(bin, "changeit".toCharArray());
-      } finally {
+    private SystemKeyStore() {
+        final KeyStore trustStore = getTrustStore();
+        this.trustRoots = initializeTrustedRoots(trustStore);
+        this.trustStore = trustStore;
+    }
+
+    public boolean isTrustRoot(X509Certificate certificate) {
+        final X509Certificate trustRoot = trustRoots.get(certificate
+                .getSubjectX500Principal());
+        return trustRoot != null
+                && trustRoot.getPublicKey().equals(certificate.getPublicKey());
+    }
+
+    public X509Certificate getTrustRootFor(X509Certificate certificate) {
+        final X509Certificate trustRoot = trustRoots.get(certificate
+                .getIssuerX500Principal());
+
+        if (trustRoot == null) {
+            return null;
+        }
+
+        if (trustRoot.getSubjectX500Principal().equals(
+                certificate.getSubjectX500Principal())) {
+            return null;
+        }
+
         try {
-          bin.close();
-        } catch (IOException ioe) {
-          Log.w("SystemKeyStore", ioe);
+            certificate.verify(trustRoot.getPublicKey());
+        } catch (GeneralSecurityException e) {
+            return null;
         }
-      }
 
-      return trustStore;
-    } catch (KeyStoreException kse) {
-      throw new AssertionError(kse);
-    } catch (NoSuchAlgorithmException e) {
-      throw new AssertionError(e);
-    } catch (CertificateException e) {
-      throw new AssertionError(e);
-    } catch (NotFoundException e) {
-      throw new AssertionError(e);
-    } catch (IOException e) {
-      throw new AssertionError(e);
+        return trustRoot;
     }
-  }
+
+    private HashMap<Principal, X509Certificate> initializeTrustedRoots(
+            KeyStore trustStore) {
+        try {
+            final HashMap<Principal, X509Certificate> trusted = new HashMap<Principal, X509Certificate>();
+
+            for (Enumeration<String> aliases = trustStore.aliases(); aliases
+                    .hasMoreElements();) {
+                final String alias = aliases.nextElement();
+                final X509Certificate cert = (X509Certificate) trustStore
+                        .getCertificate(alias);
+
+                if (cert != null) {
+                    trusted.put(cert.getSubjectX500Principal(), cert);
+                }
+            }
+
+            return trusted;
+        } catch (KeyStoreException e) {
+            throw new AssertionError(e);
+        }
+    }
+
+    private KeyStore getTrustStore() {
+        try {
+            KeyStore trustStore = null;
+
+            if (Build.VERSION.SDK_INT >= 14) {
+                trustStore = KeyStore.getInstance("AndroidCAStore");
+                trustStore.load(null, null);
+            } else {
+                trustStore = KeyStore.getInstance("BKS");
+                trustStore.load(new BufferedInputStream(new FileInputStream(
+                        getTrustStorePath())), getTrustStorePassword()
+                        .toCharArray());
+            }
+
+            return trustStore;
+        } catch (NoSuchAlgorithmException nsae) {
+            throw new AssertionError(nsae);
+        } catch (KeyStoreException e) {
+            throw new AssertionError(e);
+        } catch (CertificateException e) {
+            throw new AssertionError(e);
+        } catch (FileNotFoundException e) {
+            throw new AssertionError(e);
+        } catch (IOException e) {
+            throw new AssertionError(e);
+        }
+    }
+
+    private String getTrustStorePath() {
+        String path = System.getProperty("javax.net.ssl.trustStore");
+
+        if (path == null) {
+            path = System.getProperty("java.home") + File.separator + "etc"
+                    + File.separator + "security" + File.separator
+                    + "cacerts.bks";
+        }
+
+        return path;
+    }
+
+    private String getTrustStorePassword() {
+        String password = System
+                .getProperty("javax.net.ssl.trustStorePassword");
+
+        if (password == null) {
+            password = "changeit";
+        }
+
+        return password;
+    }
+
 }
