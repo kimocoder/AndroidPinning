@@ -36,52 +36,6 @@ android {
 }
 
 apply plugin: 'maven'
-apply plugin: 'signing'
 
 version = "1.0.0"
 group = "org.thoughtcrime.ssl.pinning"
-
-signing {
-    required { has("release") && gradle.taskGraph.hasTask("uploadArchives") }
-    sign configurations.archives
-}
-
-uploadArchives {
-    configuration = configurations.archives
-    repositories.mavenDeployer {
-        beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
-
-        repository(url: sonatypeRepo) {
-            authentication(userName: sonatypeUsername, password: sonatypePassword)
-        }
-
-        pom.project {
-            name 'AndroidPinning Library'
-            packaging 'aar'
-            description 'An Android library that facilitates certificate pinning for SSL connections in Android apps, in order to minimize dependence on Certificate Authorities.'
-            url 'https://github.com/moxie0/AndroidPinning'
-
-            scm {
-                url 'scm:git@github.com:moxie0/AndroidPinning.git'
-                connection 'scm:git@github.com:moxie0/AndroidPinning.git'
-                developerConnection 'scm:git@github.com:moxie0/AndroidPinning.git'
-            }
-
-            licenses {
-                license {
-                    name 'GPLv3'
-                    url 'http://www.gnu.org/licenses/gpl-3.0.html'
-                    distribution 'repo'
-                }
-            }
-
-            developers {
-                developer {
-                    id 'moxie'
-                    name 'Moxie Marlinspike'
-                    email 'moxie@thoughtcrime.org'
-                }
-            }
-        }
-    }
-}
