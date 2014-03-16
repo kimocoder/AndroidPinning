@@ -80,7 +80,7 @@ public class PinningSSLSocketFactory extends SSLSocketFactory {
       throws UnrecoverableKeyException, KeyManagementException,
              NoSuchAlgorithmException, KeyStoreException
   {
-    super(null);
+    super((java.security.KeyStore)null);
 
     final SystemKeyStore keyStore             = SystemKeyStore.getInstance(context);
     final SSLContext pinningSslContext        = SSLContext.getInstance(TLS);
