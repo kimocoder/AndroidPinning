@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.thoughtcrime.ssl.pinning;
+package com.tvplayer.ssl;
 
 import java.security.GeneralSecurityException;
 import java.security.cert.CertificateException;
