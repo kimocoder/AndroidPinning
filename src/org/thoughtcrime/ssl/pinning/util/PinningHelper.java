@@ -53,13 +53,12 @@ public class PinningHelper {
    *             script: python ./tools/pin.py certificate_file.pem
    */
 
-  public static HttpClient getPinnedHttpClient(Context context, String[] pins) {
+  public static HttpClient getPinnedHttpClient(Context context, String[] pins, HttpParams httpParams, int port) {
     try {
       SchemeRegistry schemeRegistry = new SchemeRegistry();
       schemeRegistry.register(new Scheme("http", PlainSocketFactory.getSocketFactory(), 80));
-      schemeRegistry.register(new Scheme("https", new PinningSSLSocketFactory(context, pins, 0), 443));
+      schemeRegistry.register(new Scheme("https", new PinningSSLSocketFactory(context, pins, 0), port));
 
-      HttpParams httpParams                     = new BasicHttpParams();
       ClientConnectionManager connectionManager = new ThreadSafeClientConnManager(httpParams, schemeRegistry);
       return new DefaultHttpClient(connectionManager, httpParams);
     } catch (UnrecoverableKeyException e) {
