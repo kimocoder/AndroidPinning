@@ -1,7 +1,11 @@
+About This fork
+=================
+This fork adds self signed certificate support so pinning is done without CA trust check. Also PinningHelper can take HttpParams parameter so connection can be configured manually.
+
 Android Pinning
 =================
 
-AndroidPinning is a standalone Android library project that facilitates certificate pinning for SSL
+AndroidPinning is a standalone Android library project that  facilitates certificate pinning for SSL
 connections from Android apps, in order to minimize dependence on Certificate Authorities.
 
 CA signatures are necessary for *general purpose* network communication tools: things like web
