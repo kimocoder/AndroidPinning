@@ -69,7 +69,7 @@ public class PinningTrustManager implements X509TrustManager {
   private final TrustManager[] systemTrustManagers;
   private final SystemKeyStore systemKeyStore;
   private final long           enforceUntilTimestampMillis;
-
+  private boolean selfSignedSupported;
   private final List<byte[]> pins          = new LinkedList<byte[]>();
   private final Set<X509Certificate> cache = Collections.synchronizedSet(new HashSet<X509Certificate>());
 
@@ -88,10 +88,11 @@ public class PinningTrustManager implements X509TrustManager {
    *                                    will continue.  Set this to some period after your build
    *                                    date, or to 0 to enforce pins forever.
    */
-  public PinningTrustManager(SystemKeyStore keyStore, String[] pins, long enforceUntilTimestampMillis) {
+  public PinningTrustManager(SystemKeyStore keyStore, String[] pins, long enforceUntilTimestampMillis, boolean selfSignedSupported) {
     this.systemTrustManagers         = initializeSystemTrustManagers(keyStore);
     this.systemKeyStore              = keyStore;
     this.enforceUntilTimestampMillis = enforceUntilTimestampMillis;
+    this.selfSignedSupported = selfSignedSupported;
 
     for (String pin : pins) {
       this.pins.add(hexStringToByteArray(pin));
@@ -116,7 +117,7 @@ public class PinningTrustManager implements X509TrustManager {
       final MessageDigest digest = MessageDigest.getInstance("SHA1");
       final byte[] spki          = certificate.getPublicKey().getEncoded();
       final byte[] pin           = digest.digest(spki);
-
+      
       for (byte[] validPin : this.pins) {
         if (Arrays.equals(validPin, pin)) {
           return true;
@@ -146,7 +147,7 @@ public class PinningTrustManager implements X509TrustManager {
       return;
     }
 
-    final X509Certificate[] cleanChain = CertificateChainCleaner.getCleanChain(chain, systemKeyStore);
+    final X509Certificate[] cleanChain = CertificateChainCleaner.getCleanChain(chain, systemKeyStore, selfSignedSupported);
 
     for (X509Certificate certificate : cleanChain) {
       if (isValidPin(certificate)) {
@@ -172,7 +173,7 @@ public class PinningTrustManager implements X509TrustManager {
     // Note: We do this so that we'll never be doing worse than the default
     // system validation.  It's duplicate work, however, and can be factored
     // out if we make the verification below more complete.
-    checkSystemTrust(chain, authType);
+    //checkSystemTrust(chain, authType);
     checkPinTrust(chain);
     cache.add(chain[0]);
   }

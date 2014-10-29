@@ -76,7 +76,7 @@ public class PinningSSLSocketFactory extends SSLSocketFactory {
    *                                    date, or to 0 to enforce pins forever.
    */
 
-  public PinningSSLSocketFactory(Context context, String[] pins, long enforceUntilTimestampMillis)
+  public PinningSSLSocketFactory(Context context, String[] pins, long enforceUntilTimestampMillis, boolean selfSignedSupported)
       throws UnrecoverableKeyException, KeyManagementException,
              NoSuchAlgorithmException, KeyStoreException
   {
@@ -84,7 +84,7 @@ public class PinningSSLSocketFactory extends SSLSocketFactory {
 
     final SystemKeyStore keyStore             = SystemKeyStore.getInstance(context);
     final SSLContext pinningSslContext        = SSLContext.getInstance(TLS);
-    final TrustManager[] pinningTrustManagers = initializePinningTrustManagers(keyStore, pins, enforceUntilTimestampMillis);
+    final TrustManager[] pinningTrustManagers = initializePinningTrustManagers(keyStore, pins, enforceUntilTimestampMillis, selfSignedSupported);
 
     pinningSslContext.init(null, pinningTrustManagers, null);
     this.pinningSocketFactory = pinningSslContext.getSocketFactory();
@@ -116,7 +116,7 @@ public class PinningSSLSocketFactory extends SSLSocketFactory {
     sslSock.connect(remoteAddress, connTimeout);
     sslSock.setSoTimeout(soTimeout);
 
-    try {
+   /* try {
       SSLSocketFactory.STRICT_HOSTNAME_VERIFIER.verify(host, sslSock);
     } catch (IOException iox) {
       try {
@@ -124,7 +124,7 @@ public class PinningSSLSocketFactory extends SSLSocketFactory {
       } catch (Exception ignored) {
       }
       throw iox;
-    }
+    }*/
 
     return sslSock;
   }
@@ -139,7 +139,7 @@ public class PinningSSLSocketFactory extends SSLSocketFactory {
     }
 
     final SSLSocket sslSocket = (SSLSocket) pinningSocketFactory.createSocket(socket, host, port, autoClose);
-    SSLSocketFactory.STRICT_HOSTNAME_VERIFIER.verify(host, sslSocket);
+    //SSLSocketFactory.STRICT_HOSTNAME_VERIFIER.verify(host, sslSocket);
     return sslSocket;
   }
 
@@ -156,10 +156,10 @@ public class PinningSSLSocketFactory extends SSLSocketFactory {
 
   private TrustManager[] initializePinningTrustManagers(SystemKeyStore keyStore,
                                                         String[] pins,
-                                                        long enforceUntilTimestampMillis)
+                                                        long enforceUntilTimestampMillis, boolean selfSignedSupported)
   {
     final TrustManager[] trustManagers = new TrustManager[1];
-    trustManagers[0] = new PinningTrustManager(keyStore, pins, enforceUntilTimestampMillis);
+    trustManagers[0] = new PinningTrustManager(keyStore, pins, enforceUntilTimestampMillis, selfSignedSupported);
 
     return trustManagers;
   }

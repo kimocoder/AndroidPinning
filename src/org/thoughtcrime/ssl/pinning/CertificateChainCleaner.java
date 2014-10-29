@@ -34,11 +34,15 @@ class CertificateChainCleaner {
   private CertificateChainCleaner() {}
 
   public static X509Certificate[] getCleanChain(X509Certificate[] chain,
-                                                SystemKeyStore systemKeyStore)
+                                                SystemKeyStore systemKeyStore, boolean selfSignedSupported)
       throws CertificateException
   {
     final LinkedList<X509Certificate> cleanChain = new LinkedList<X509Certificate>();
     boolean trustedChain = false;
+    
+    if (selfSignedSupported)
+    	trustedChain = true;
+    
     int i;
 
     if (systemKeyStore.isTrustRoot(chain[0])) {

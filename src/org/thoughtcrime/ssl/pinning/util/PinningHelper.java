@@ -53,11 +53,11 @@ public class PinningHelper {
    *             script: python ./tools/pin.py certificate_file.pem
    */
 
-  public static HttpClient getPinnedHttpClient(Context context, String[] pins, HttpParams httpParams, int port) {
+  public static HttpClient getPinnedHttpClient(Context context, String[] pins, HttpParams httpParams, int port, boolean selfSignedSupported) {
     try {
       SchemeRegistry schemeRegistry = new SchemeRegistry();
       schemeRegistry.register(new Scheme("http", PlainSocketFactory.getSocketFactory(), 80));
-      schemeRegistry.register(new Scheme("https", new PinningSSLSocketFactory(context, pins, 0), port));
+      schemeRegistry.register(new Scheme("https", new PinningSSLSocketFactory(context, pins, 0, selfSignedSupported), port));
 
       ClientConnectionManager connectionManager = new ThreadSafeClientConnManager(httpParams, schemeRegistry);
       return new DefaultHttpClient(connectionManager, httpParams);
@@ -83,7 +83,7 @@ public class PinningHelper {
    *
    */
 
-  public static HttpsURLConnection getPinnedHttpsURLConnection(Context context, String[] pins, URL url)
+  public static HttpsURLConnection getPinnedHttpsURLConnection(Context context, String[] pins, URL url, boolean selfSignedSupported)
       throws IOException
   {
     try {
@@ -92,7 +92,7 @@ public class PinningHelper {
       }
 
       TrustManager[] trustManagers = new TrustManager[1];
-      trustManagers[0]             = new PinningTrustManager(SystemKeyStore.getInstance(context), pins, 0);
+      trustManagers[0]             = new PinningTrustManager(SystemKeyStore.getInstance(context), pins, 0, selfSignedSupported);
 
       SSLContext sslContext = SSLContext.getInstance("TLS");
       sslContext.init(null, trustManagers, null);
