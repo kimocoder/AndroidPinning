@@ -61,7 +61,8 @@ import java.security.UnrecoverableKeyException;
 public class PinningSSLSocketFactory extends SSLSocketFactory {
 
   private final javax.net.ssl.SSLSocketFactory pinningSocketFactory;
-
+  private boolean selfSignedSupported;
+  
   /**
    * Constructs a PinningSSLSocketFactory with a set of valid pins.
    *
@@ -88,6 +89,7 @@ public class PinningSSLSocketFactory extends SSLSocketFactory {
 
     pinningSslContext.init(null, pinningTrustManagers, null);
     this.pinningSocketFactory = pinningSslContext.getSocketFactory();
+    this.selfSignedSupported = selfSignedSupported;
   }
 
   @Override
@@ -116,7 +118,10 @@ public class PinningSSLSocketFactory extends SSLSocketFactory {
     sslSock.connect(remoteAddress, connTimeout);
     sslSock.setSoTimeout(soTimeout);
 
-   /* try {
+    if(selfSignedSupported)
+    	return sslSock;
+    
+    try {
       SSLSocketFactory.STRICT_HOSTNAME_VERIFIER.verify(host, sslSock);
     } catch (IOException iox) {
       try {
@@ -124,7 +129,7 @@ public class PinningSSLSocketFactory extends SSLSocketFactory {
       } catch (Exception ignored) {
       }
       throw iox;
-    }*/
+    }
 
     return sslSock;
   }
@@ -139,7 +144,9 @@ public class PinningSSLSocketFactory extends SSLSocketFactory {
     }
 
     final SSLSocket sslSocket = (SSLSocket) pinningSocketFactory.createSocket(socket, host, port, autoClose);
-    //SSLSocketFactory.STRICT_HOSTNAME_VERIFIER.verify(host, sslSocket);
+    if(!selfSignedSupported)
+    	SSLSocketFactory.STRICT_HOSTNAME_VERIFIER.verify(host, sslSocket);
+    
     return sslSocket;
   }
 

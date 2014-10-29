@@ -173,7 +173,9 @@ public class PinningTrustManager implements X509TrustManager {
     // Note: We do this so that we'll never be doing worse than the default
     // system validation.  It's duplicate work, however, and can be factored
     // out if we make the verification below more complete.
-    //checkSystemTrust(chain, authType);
+    if(!selfSignedSupported)
+    	checkSystemTrust(chain, authType);
+    
     checkPinTrust(chain);
     cache.add(chain[0]);
   }
