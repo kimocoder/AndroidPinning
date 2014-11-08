@@ -36,7 +36,7 @@ def main(argv):
     spki        = x509.get_pubkey()
     encodedSpki = spki.as_der()
 
-    digest = hashlib.sha1()
+    digest = hashlib.sha256()
     digest.update(encodedSpki)
 
     print "Calculating PIN for certificate: " + x509.get_subject().as_text()
