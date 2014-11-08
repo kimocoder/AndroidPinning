@@ -113,7 +113,7 @@ public class PinningTrustManager implements X509TrustManager {
 
   private boolean isValidPin(X509Certificate certificate) throws CertificateException {
     try {
-      final MessageDigest digest = MessageDigest.getInstance("SHA1");
+      final MessageDigest digest = MessageDigest.getInstance("SHA-256");
       final byte[] spki          = certificate.getPublicKey().getEncoded();
       final byte[] pin           = digest.digest(spki);
 
