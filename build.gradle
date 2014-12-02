@@ -16,7 +16,7 @@ android {
 
     android {
         defaultConfig {
-            testPackageName "org.thoughtcrime.ssl.pinning.tests"
+            testApplicationId "org.thoughtcrime.ssl.pinning.tests"
             testInstrumentationRunner "android.test.InstrumentationTestRunner"
         }
         sourceSets {
