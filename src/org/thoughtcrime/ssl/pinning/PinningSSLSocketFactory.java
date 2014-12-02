@@ -24,9 +24,6 @@ import org.apache.http.conn.ssl.X509HostnameVerifier;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.TrustManager;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -35,6 +32,10 @@ import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.TrustManager;
 
 /**
  * A standard Apache SSL Socket Factory that uses an pinning trust manager.
@@ -139,7 +140,15 @@ public class PinningSSLSocketFactory extends SSLSocketFactory {
     }
 
     final SSLSocket sslSocket = (SSLSocket) pinningSocketFactory.createSocket(socket, host, port, autoClose);
-    SSLSocketFactory.STRICT_HOSTNAME_VERIFIER.verify(host, sslSocket);
+    try {
+        SSLSocketFactory.STRICT_HOSTNAME_VERIFIER.verify(host, sslSocket);
+    } catch (final IOException e) {
+        try {
+            sslSocket.close();
+        } catch (final Exception ignored) {
+        }
+        throw e;
+    }
     return sslSocket;
   }
 
