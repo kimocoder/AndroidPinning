@@ -72,6 +72,7 @@ public class PinningTrustManager implements X509TrustManager {
 
   private final List<byte[]> pins          = new LinkedList<byte[]>();
   private final Set<X509Certificate> cache = Collections.synchronizedSet(new HashSet<X509Certificate>());
+  private final String pinAlgo;
 
   /**
    * Constructs a PinningTrustManager with a set of valid pins.
@@ -89,9 +90,19 @@ public class PinningTrustManager implements X509TrustManager {
    *                                    date, or to 0 to enforce pins forever.
    */
   public PinningTrustManager(SystemKeyStore keyStore, String[] pins, long enforceUntilTimestampMillis) {
+    this(keyStore, pins, enforceUntilTimestampMillis, "SHA-1");
+  }
+
+  /**
+   * @link #Constructor(SystemKeyStore, String[], long)
+   *
+   * @param pinAlgo PIN digest algorithm
+   */
+  public PinningTrustManager(SystemKeyStore keyStore, String[] pins, long enforceUntilTimestampMillis, String pinAlgo) {
     this.systemTrustManagers         = initializeSystemTrustManagers(keyStore);
     this.systemKeyStore              = keyStore;
     this.enforceUntilTimestampMillis = enforceUntilTimestampMillis;
+    this.pinAlgo = pinAlgo;
 
     for (String pin : pins) {
       this.pins.add(hexStringToByteArray(pin));
@@ -113,7 +124,7 @@ public class PinningTrustManager implements X509TrustManager {
 
   private boolean isValidPin(X509Certificate certificate) throws CertificateException {
     try {
-      final MessageDigest digest = MessageDigest.getInstance("SHA1");
+      final MessageDigest digest = MessageDigest.getInstance(pinAlgo);
       final byte[] spki          = certificate.getPublicKey().getEncoded();
       final byte[] pin           = digest.digest(spki);
 

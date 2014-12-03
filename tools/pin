@@ -1,6 +1,6 @@
 #!/bin/sh
 
-[[ $# -lt 1 ]] && echo "usage: pin HOST [PORT]" && exit 1
+[[ $# -lt 1 ]] && echo "usage: pin HOST [PORT] [256]" && exit 1
 
 if [ $# -gt 1 ]; then
     PORT=$2
@@ -8,8 +8,15 @@ else
     PORT=443
 fi
 
+ALGO=sha1
+if [ $# -gt 2  ] && [ "$3" = "256" ]; then
+    ALGO=sha256
+fi
+
+echo "PIN Algo: $ALGO"
+
 echo -n | openssl s_client -connect $1:$PORT 2>/dev/null | \
     openssl x509 -noout -pubkey | \
     openssl rsa -pubin -outform DER | \
-    openssl sha1 -hex | \
+    openssl $ALGO -hex | \
     cut -f2 -d'='
