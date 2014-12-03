@@ -62,6 +62,7 @@ import javax.net.ssl.TrustManager;
 public class PinningSSLSocketFactory extends SSLSocketFactory {
 
   private final javax.net.ssl.SSLSocketFactory pinningSocketFactory;
+  private X509HostnameVerifier verifier = STRICT_HOSTNAME_VERIFIER;
 
   /**
    * Constructs a PinningSSLSocketFactory with a set of valid pins.
@@ -118,7 +119,7 @@ public class PinningSSLSocketFactory extends SSLSocketFactory {
     sslSock.setSoTimeout(soTimeout);
 
     try {
-      SSLSocketFactory.STRICT_HOSTNAME_VERIFIER.verify(host, sslSock);
+      verifier.verify(host, sslSock);
     } catch (IOException iox) {
       try {
         sslSock.close();
@@ -141,7 +142,7 @@ public class PinningSSLSocketFactory extends SSLSocketFactory {
 
     final SSLSocket sslSocket = (SSLSocket) pinningSocketFactory.createSocket(socket, host, port, autoClose);
     try {
-        SSLSocketFactory.STRICT_HOSTNAME_VERIFIER.verify(host, sslSocket);
+        verifier.verify(host, sslSocket);
     } catch (final IOException e) {
         try {
             sslSocket.close();
@@ -154,13 +155,14 @@ public class PinningSSLSocketFactory extends SSLSocketFactory {
 
   @Override
   public void setHostnameVerifier(X509HostnameVerifier hostnameVerifier) {
-    throw new IllegalArgumentException("Only strict hostname verification (default)  " +
-                                       "is supported!");
+    if (hostnameVerifier == null)
+      hostnameVerifier = STRICT_HOSTNAME_VERIFIER;
+    verifier = hostnameVerifier;
   }
 
   @Override
   public X509HostnameVerifier getHostnameVerifier() {
-    return SSLSocketFactory.STRICT_HOSTNAME_VERIFIER;
+    return verifier;
   }
 
   private TrustManager[] initializePinningTrustManagers(SystemKeyStore keyStore,
