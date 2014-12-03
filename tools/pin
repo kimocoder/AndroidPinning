@@ -1,0 +1,15 @@
+#!/bin/sh
+
+[[ $# -lt 1 ]] && echo "usage: pin HOST [PORT]" && exit 1
+
+if [ $# -gt 1 ]; then
+    PORT=$2
+else
+    PORT=443
+fi
+
+echo -n | openssl s_client -connect $1:$PORT 2>/dev/null | \
+    openssl x509 -noout -pubkey | \
+    openssl rsa -pubin -outform DER | \
+    openssl sha1 -hex | \
+    cut -f2 -d'='
