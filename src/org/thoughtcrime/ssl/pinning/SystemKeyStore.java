@@ -18,6 +18,7 @@ package org.thoughtcrime.ssl.pinning;
 
 import android.content.Context;
 import android.content.res.Resources.NotFoundException;
+import android.os.Build;
 import android.util.Log;
 
 import java.io.BufferedInputStream;
@@ -107,18 +108,23 @@ public class SystemKeyStore {
 
   private KeyStore getTrustStore(Context context) {
     try {
-      final KeyStore trustStore = KeyStore.getInstance("BKS");
-      final BufferedInputStream bin =
+      final KeyStore trustStore;
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
+        trustStore = KeyStore.getInstance("AndroidCAStore");
+        trustStore.load(null, null);
+      } else {
+        trustStore = KeyStore.getInstance("BKS");
+        final BufferedInputStream bin =
           new BufferedInputStream(context.getResources().openRawResource(R.raw.cacerts),
                                   CACERTS_FILE_SIZE);
-
-      try {
-        trustStore.load(bin, "changeit".toCharArray());
-      } finally {
         try {
-          bin.close();
-        } catch (IOException ioe) {
-          Log.w("SystemKeyStore", ioe);
+          trustStore.load(bin, "changeit".toCharArray());
+        } finally {
+          try {
+            bin.close();
+          } catch (IOException ioe) {
+            Log.w("SystemKeyStore", ioe);
+          }
         }
       }
 
