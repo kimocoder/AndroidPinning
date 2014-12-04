@@ -105,9 +105,16 @@ public class PinningTrustManager implements X509TrustManager {
     this.enforceUntilTimestampMillis = enforceUntilTimestampMillis;
     this.pinAlgo                     = pinAlgo;
 
-    for (String pin : pins) {
+    final int len = getPinLen(pinAlgo);
+    for (final String pin : pins) {
+      if (pin.length() != len)
+        throw new IllegalArgumentException("PIN '" + pin + "' doesn't match " + pinAlgo);
       this.pins.add(hexStringToByteArray(pin));
     }
+  }
+
+  protected int getPinLen(final String algo) {
+    return algo.contains("256") ? 64 : 40;
   }
 
   private TrustManager[] initializeSystemTrustManagers(SystemKeyStore keyStore) {
