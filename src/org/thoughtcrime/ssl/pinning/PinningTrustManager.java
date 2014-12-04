@@ -90,7 +90,8 @@ public class PinningTrustManager implements X509TrustManager {
    *                                    date, or to 0 to enforce pins forever.
    */
   public PinningTrustManager(SystemKeyStore keyStore, String[] pins, long enforceUntilTimestampMillis) {
-    this(keyStore, pins, enforceUntilTimestampMillis, "SHA-1");
+    this(keyStore, pins, enforceUntilTimestampMillis,
+       pins != null && pins.length != 0 && pins[0].length() == 64 ? "SHA-256" : "SHA-1");
   }
 
   /**
@@ -102,7 +103,7 @@ public class PinningTrustManager implements X509TrustManager {
     this.systemTrustManagers         = initializeSystemTrustManagers(keyStore);
     this.systemKeyStore              = keyStore;
     this.enforceUntilTimestampMillis = enforceUntilTimestampMillis;
-    this.pinAlgo = pinAlgo;
+    this.pinAlgo                     = pinAlgo;
 
     for (String pin : pins) {
       this.pins.add(hexStringToByteArray(pin));
