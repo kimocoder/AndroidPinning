@@ -1,22 +1,27 @@
 #!/bin/sh
 
-[[ $# -lt 1 ]] && echo "usage: pin HOST [PORT] [256]" && exit 1
+[[ $# -lt 1 ]] && echo "usage: pin FILE|[HOST [PORT]] [256]" && exit 1
 
-if [ $# -gt 1 ]; then
-    PORT=$2
-else
-    PORT=443
-fi
+FILE=$1
 
 ALGO=sha1
-if [ $# -gt 2  ] && [ "$3" = "256" ]; then
+if [ $# -gt 2  ] && [ "$3" = "256" ] || [ "$2" = "256" ]; then
     ALGO=sha256
 fi
 
-echo "PIN Algo: $ALGO"
+if [ ! -f "$FILE" ]; then
+    PORT=443
+    if [ $# -gt 1 ]; then
+        PORT=$2
+    fi
+    FILE=`mktemp`
+    echo -n | openssl s_client -connect $1:$PORT 2>/dev/null | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > "$FILE"
+fi
 
-echo -n | openssl s_client -connect $1:$PORT 2>/dev/null | \
-    openssl x509 -noout -pubkey | \
+echo Generate ${ALGO}-PIN from: $FILE
+echo Fingerprint: $(openssl x509 -in "$FILE"  -noout -fingerprint | cut -f2 -d'=')
+
+openssl x509 -noout -pubkey -in "$FILE" | \
     openssl rsa -pubin -outform DER | \
     openssl $ALGO -hex | \
     cut -f2 -d'='
