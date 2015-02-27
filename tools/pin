@@ -11,10 +11,11 @@ fi
 
 if [ ! -f "$FILE" ]; then
     PORT=443
-    if [ $# -gt 1 ]; then
+    if [ $# -gt 1 ] && [ "$ALGO" = "sha1" ] ; then
         PORT=$2
     fi
     FILE=`mktemp`
+    echo $1 $PORT
     echo -n | openssl s_client -connect $1:$PORT 2>/dev/null | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > "$FILE"
 fi
 
