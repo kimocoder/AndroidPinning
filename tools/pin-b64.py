@@ -25,7 +25,7 @@ If you need this to be something other than GPL, send me an email.
 """
 
 from M2Crypto import X509
-import sys, binascii, hashlib
+import sys, binascii, hashlib, base64
 
 def main(argv):
     if len(argv) < 1:
