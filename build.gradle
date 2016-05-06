@@ -72,7 +72,7 @@ uploadArchives {
             snapshotRepository(url: uri("../omada-nexus/release"))
             pom.groupId = 'org.thoughtcrime.ssl.pinning'
             pom.artifactId = 'AndroidPinning'
-            pom.version = '1.0.0-OG-NetCipher1.2-DigicertRoot'
+            pom.version = '1.0.0-OG-NetCipher1.2-DigicertRoot-LogChain'
         }
     }
 }
