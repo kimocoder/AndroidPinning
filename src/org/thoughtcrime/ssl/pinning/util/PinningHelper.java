@@ -32,15 +32,18 @@ import org.thoughtcrime.ssl.pinning.PinningSSLSocketFactory;
 import org.thoughtcrime.ssl.pinning.PinningTrustManager;
 import org.thoughtcrime.ssl.pinning.SystemKeyStore;
 
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
 import java.io.IOException;
 import java.net.URL;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
+
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+
+import info.guardianproject.netcipher.NetCipher;
 
 public class PinningHelper {
 
@@ -62,13 +65,7 @@ public class PinningHelper {
       HttpParams httpParams                     = new BasicHttpParams();
       ClientConnectionManager connectionManager = new ThreadSafeClientConnManager(httpParams, schemeRegistry);
       return new DefaultHttpClient(connectionManager, httpParams);
-    } catch (UnrecoverableKeyException e) {
-      throw new AssertionError(e);
-    } catch (KeyManagementException e) {
-      throw new AssertionError(e);
-    } catch (NoSuchAlgorithmException e) {
-      throw new AssertionError(e);
-    } catch (KeyStoreException e) {
+    } catch (UnrecoverableKeyException | KeyManagementException | KeyStoreException | NoSuchAlgorithmException e) {
       throw new AssertionError(e);
     }
   }
@@ -98,14 +95,12 @@ public class PinningHelper {
       SSLContext sslContext = SSLContext.getInstance("TLS");
       sslContext.init(null, trustManagers, null);
 
-      HttpsURLConnection urlConnection = (HttpsURLConnection)url.openConnection();
+      HttpsURLConnection urlConnection = NetCipher.getHttpsURLConnection(url);
       urlConnection.setSSLSocketFactory(sslContext.getSocketFactory());
 
       return urlConnection;
-    } catch (NoSuchAlgorithmException nsae) {
+    } catch (NoSuchAlgorithmException | KeyManagementException nsae) {
       throw new AssertionError(nsae);
-    } catch (KeyManagementException e) {
-      throw new AssertionError(e);
     }
   }
 }
